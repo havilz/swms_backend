@@ -35,8 +35,8 @@ ENV APACHE_DOCUMENT_ROOT=/var/www/html/public \
     LOG_CHANNEL=stderr
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libonig-dev libsqlite3-dev libzip-dev \
-    && docker-php-ext-install bcmath mbstring opcache pdo_mysql pdo_sqlite zip \
+    && apt-get install -y --no-install-recommends libsqlite3-dev libzip-dev \
+    && docker-php-ext-install bcmath opcache pdo_mysql pdo_sqlite zip \
     && a2enmod headers rewrite \
     && sed -ri -e "s!/var/www/html!${APACHE_DOCUMENT_ROOT}!g" /etc/apache2/sites-available/*.conf /etc/apache2/apache2.conf \
     && rm -rf /var/lib/apt/lists/*
