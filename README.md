@@ -220,7 +220,7 @@ Tidak perlu membuat `GHCR_TOKEN` manual untuk publish dari repository yang sama;
 
 ### Runtime Environment
 
-Image tidak membawa `.env`, database SQLite lokal, token, atau password. Saat container dijalankan, inject environment production seperti `APP_KEY`, `APP_ENV`, `APP_DEBUG=false`, `APP_URL`, database connection, `FILESYSTEM_DISK`, dan secret lain melalui platform deployment.
+Image tidak membawa `.env`, database SQLite lokal, token, atau password. Saat container dijalankan, inject environment production seperti `APP_KEY`, `APP_ENV`, `APP_DEBUG=false`, database connection, `FILESYSTEM_DISK`, dan secret lain melalui platform deployment. Di Render, `APP_URL` otomatis memakai `RENDER_EXTERNAL_URL` jika `APP_URL` tidak diset; set `APP_URL` hanya bila ingin memaksa custom domain.
 
 Migration dijalankan sebagai langkah release/deployment terpisah:
 

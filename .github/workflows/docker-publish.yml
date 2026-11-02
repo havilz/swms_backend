@@ -18,6 +18,9 @@ jobs:
   test:
     name: Test application
     runs-on: ubuntu-latest
+    env:
+      APP_ENV: testing
+      APP_KEY: 'base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='
 
     steps:
       - name: Checkout repository
