@@ -36,7 +36,7 @@ ENV APACHE_DOCUMENT_ROOT=/var/www/html/public \
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends libsqlite3-dev libzip-dev \
-    && docker-php-ext-install bcmath opcache pdo_mysql pdo_sqlite zip \
+    && docker-php-ext-install bcmath pdo_mysql pdo_sqlite zip \
     && a2enmod headers rewrite \
     && sed -ri -e "s!/var/www/html!${APACHE_DOCUMENT_ROOT}!g" /etc/apache2/sites-available/*.conf /etc/apache2/apache2.conf \
     && rm -rf /var/lib/apt/lists/*
