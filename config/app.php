@@ -56,7 +56,7 @@ return [
     |
     */
 
-    'url' => env('APP_URL') ?: env('RENDER_EXTERNAL_URL', 'http://localhost:8000'),
+    'url' => env('RENDER_EXTERNAL_URL') ?: env('APP_URL', 'http://localhost:8000'),
 
     /*
     |--------------------------------------------------------------------------
