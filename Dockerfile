@@ -59,4 +59,4 @@ RUN mkdir -p \
 
 EXPOSE 80
 
-CMD ["apache2-foreground"]
+CMD ["sh", "-c", "php artisan migrate --force && exec apache2-foreground"]
