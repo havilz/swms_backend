@@ -25,11 +25,14 @@ class SwmsFeatureTest extends TestCase
         $response = $this->postJson('/api/v1/auth/register', [
             'name' => 'New Resident',
             'email' => 'resident@example.com',
+            'role' => 'admin',
             'password' => 'password123',
             'password_confirmation' => 'password123',
         ]);
 
         $response->assertCreated()->assertJsonPath('data.user.role', 'user');
+        $this->assertIsString($response->json('data.token'));
+        $this->assertNotEmpty($response->json('data.token'));
         $this->assertDatabaseHas('users', ['email' => 'resident@example.com', 'role' => 'user']);
     }
 

@@ -185,6 +185,51 @@ composer audit --locked
 
 Test suite mencakup guest redirect, admin/user authorization, mobile API isolation, registration, report creation, image validation, status workflow, dan user management.
 
+## GHCR and CI/CD
+
+Workflow [`.github/workflows/docker-publish.yml`](.github/workflows/docker-publish.yml) berjalan ketika ada push ke branch `main` atau `master`, dan juga dapat dijalankan manual melalui `workflow_dispatch`.
+
+Alurnya:
+
+1. GitHub Actions checkout source.
+2. Setup PHP 8.5 dan Node.js 22.
+3. Install dependency Composer dan npm.
+4. Jalankan PHPUnit dan build Vite.
+5. Jika test lulus, build satu production image dari [Dockerfile](Dockerfile).
+6. Login menggunakan `GITHUB_TOKEN` dan publish ke GHCR.
+
+Image yang dihasilkan:
+
+```text
+ghcr.io/<github-owner>/<repository>:latest
+ghcr.io/<github-owner>/<repository>:sha-<commit>
+```
+
+Workflow memakai permission minimum: job test hanya `contents: read`, sedangkan job publish mendapat `packages: write`. Image juga menyertakan BuildKit provenance dan SBOM.
+
+### Repository Setup
+
+Pastikan repository memiliki:
+
+- Actions enabled.
+- Workflow permission yang mengizinkan `GITHUB_TOKEN` membaca source dan menulis package.
+- Package visibility GHCR diatur sesuai kebutuhan deployment.
+- Branch yang dipakai (`main`, atau sementara `master`) menerima workflow ini.
+
+Tidak perlu membuat `GHCR_TOKEN` manual untuk publish dari repository yang sama; `secrets.GITHUB_TOKEN` digunakan oleh workflow. Untuk deployment dari server lain, gunakan Personal Access Token dengan scope package yang paling minimal dan simpan hanya sebagai secret di platform deployment.
+
+### Runtime Environment
+
+Image tidak membawa `.env`, database SQLite lokal, token, atau password. Saat container dijalankan, inject environment production seperti `APP_KEY`, `APP_ENV`, `APP_DEBUG=false`, `APP_URL`, database connection, `FILESYSTEM_DISK`, dan secret lain melalui platform deployment.
+
+Migration dijalankan sebagai langkah release/deployment terpisah:
+
+```bash
+php artisan migrate --force
+```
+
+Jangan menjalankan `db:seed` production tanpa keputusan eksplisit karena seeder memperbarui akun demo berdasarkan `SWMS_ADMIN_PASSWORD` dan `SWMS_DEMO_PASSWORD`.
+
 ## Documentation
 
 - [API Documentation](docs/API_DOCUMENTATION.md)
