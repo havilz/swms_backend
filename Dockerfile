@@ -59,4 +59,4 @@ RUN mkdir -p \
 
 EXPOSE 80
 
-CMD ["sh", "-c", "php artisan migrate --force && exec apache2-foreground"]
+CMD ["sh", "-c", "php artisan migrate --force && if [ \"${SWMS_SEED_ON_START:-false}\" = \"true\" ]; then php artisan db:seed --force; fi && exec apache2-foreground"]
