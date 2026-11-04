@@ -25,7 +25,7 @@ class ReportFactory extends Factory
             'location_address' => fake()->address(),
             'latitude' => fake()->latitude(-6.3, -6.1),
             'longitude' => fake()->longitude(106.7, 106.9),
-            'image_path' => null,
+            'image_url' => null,
             'status' => fake()->randomElement(Report::STATUSES),
             'admin_notes' => null,
         ];

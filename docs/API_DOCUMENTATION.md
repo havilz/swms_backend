@@ -1,6 +1,6 @@
-# SWMS Mobile API Documentation
+# SWMS Backend API Documentation
 
-Dokumentasi ini menjelaskan kontrak API yang saat ini tersedia untuk aplikasi mobile pengguna.
+Dokumentasi ini menjelaskan kontrak API untuk aplikasi mobile pengguna dan frontend admin yang terpisah.
 
 ## API Contract
 
@@ -21,6 +21,12 @@ http://localhost:8000/api/v1
 ```
 
 Untuk staging atau production, ganti host sesuai environment aplikasi.
+
+## Storage configuration
+
+Report images use the `r2` disk backed by Cloudflare's S3-compatible API. Set `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` to the R2 S3 access-key pair, `AWS_BUCKET=swms`, `AWS_DEFAULT_REGION=auto`, `AWS_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com`, and `R2_PUBLIC_URL` to the bucket's public domain. Do not use the Cloudflare dashboard API token as the S3 secret or expose the S3 API endpoint as an image URL.
+
+The database stores the complete public URL in `reports.image_url`. For backward compatibility, report JSON includes `image_path` with the same URL. Legacy local images can be moved with `php artisan reports:migrate-images-to-r2 --dry-run`; review the output before running the command without `--dry-run`.
 
 ## Authentication Flow
 
@@ -191,7 +197,8 @@ Authorization: Bearer <token>
       "location_address": "Taman Kota",
       "latitude": "-6.2000000",
       "longitude": "106.8000000",
-      "image_path": "reports/example.jpg",
+      "image_url": "https://pub-c956ace443384e5d97c55b5406d3c802.r2.dev/reports/example.jpg",
+      "image_path": "https://pub-c956ace443384e5d97c55b5406d3c802.r2.dev/reports/example.jpg",
       "status": "pending",
       "admin_notes": null,
       "created_at": "2026-11-02T10:00:00.000000Z",
@@ -207,7 +214,7 @@ Authorization: Bearer <token>
 }
 ```
 
-`image_path` adalah path storage saat ini, bukan URL absolut. Mobile client sebaiknya memperlakukan nilai ini sebagai path sampai endpoint media/public URL ditetapkan secara resmi.
+Database menyimpan URL publik penuh pada kolom `image_url`. API mengembalikan `image_url` dan alias `image_path` dengan nilai yang sama untuk kompatibilitas client lama. Gambar diunggah ke Cloudflare R2 menggunakan kredensial S3; `R2_PUBLIC_URL` harus menunjuk ke domain publik bucket.
 
 ### POST `/reports`
 
@@ -253,7 +260,8 @@ curl -X POST "http://localhost:8000/api/v1/reports" \
     "location_address": "Taman Kota",
     "latitude": "-6.2000000",
     "longitude": "106.8000000",
-    "image_path": "reports/example.jpg",
+    "image_url": "https://pub-c956ace443384e5d97c55b5406d3c802.r2.dev/reports/example.jpg",
+    "image_path": "https://pub-c956ace443384e5d97c55b5406d3c802.r2.dev/reports/example.jpg",
     "status": "pending",
     "admin_notes": null,
     "created_at": "2026-11-02T10:00:00.000000Z",
@@ -280,7 +288,8 @@ User yang bukan pemilik laporan menerima `403 Forbidden`.
     "location_address": "Taman Kota",
     "latitude": "-6.2000000",
     "longitude": "106.8000000",
-    "image_path": "reports/example.jpg",
+    "image_url": "https://pub-c956ace443384e5d97c55b5406d3c802.r2.dev/reports/example.jpg",
+    "image_path": "https://pub-c956ace443384e5d97c55b5406d3c802.r2.dev/reports/example.jpg",
     "status": "pending",
     "admin_notes": null,
     "created_at": "2026-11-02T10:00:00.000000Z",
@@ -289,9 +298,38 @@ User yang bukan pemilik laporan menerima `403 Forbidden`.
 }
 ```
 
+### PATCH `/reports/{report}`
+
+Memperbarui laporan milik user yang sedang login. `{report}` harus dimiliki user tersebut; pemilik lain menerima `403 Forbidden`. Request menerima JSON atau `multipart/form-data` bila mengganti gambar.
+
+Field yang dapat diubah: `title`, `description`, `location_address`, `latitude`, `longitude`, `image`, dan `remove_image`. Field bersifat opsional, tetapi minimal satu perubahan harus dikirim. Gambar baru disimpan ke R2 dan URL pada database diperbarui; gambar sebelumnya dihapus setelah perubahan tersimpan.
+
+User tidak dapat mengubah `status`, `admin_notes`, atau `user_id`; perubahan status hanya dapat dilakukan melalui Admin API.
+
+Kirim `remove_image: true` untuk menghapus gambar yang sudah ada. `image` dan `remove_image` tidak boleh dikirim bersamaan. Response `200 OK` berisi `message` dan objek `data` laporan yang diperbarui.
+
+## Admin API
+
+Semua endpoint `/admin/*` memerlukan Sanctum token milik user dengan role `admin`. Token admin diperoleh melalui `POST /auth/login`; token user biasa menerima `403 Forbidden`.
+
+| Method | Endpoint | Keterangan |
+| --- | --- | --- |
+| `GET` | `/admin/dashboard` | Statistik laporan dan laporan terbaru |
+| `GET` | `/admin/reports` | Daftar laporan dengan filter status, pencarian, tanggal, dan paginasi |
+| `GET` | `/admin/reports/{report}` | Detail laporan dan data pelapor |
+| `PATCH` | `/admin/reports/{report}/status` | Perbarui status dan catatan admin sesuai workflow |
+| `DELETE` | `/admin/reports/{report}` | Hapus laporan serta gambar terkait |
+| `GET` | `/admin/users` | Daftar user/admin dengan filter role, pencarian, dan paginasi |
+| `POST` | `/admin/users` | Buat user atau admin |
+| `GET` | `/admin/users/{user}` | Detail user dan jumlah laporan |
+| `PATCH` | `/admin/users/{user}` | Perbarui user |
+| `DELETE` | `/admin/users/{user}` | Hapus user; admin tidak dapat menghapus akunnya sendiri |
+
+Web UI backend hanya menyediakan login admin dan dashboard health check pada `/admin/dashboard`. Endpoint `GET /up` adalah health endpoint API publik Laravel.
+
 ## Report Status
 
-Status laporan dikelola administrator melalui dashboard web. Mobile client hanya membaca status dan `admin_notes`.
+Status laporan dikelola administrator melalui Admin API. Mobile client hanya membaca status dan `admin_notes`; user tidak dapat mengubah kedua field tersebut.
 
 ```text
 pending ──> in_progress ──> completed
@@ -361,11 +399,16 @@ Login atau register terlalu sering dilakukan. Mobile client perlu menghormati re
 
 ## Current Limitations and Future API Work
 
-- Belum ada API untuk update atau delete report dari mobile.
-- Belum ada endpoint khusus untuk public image URL atau image download authorization.
-- Belum memakai Eloquent API Resource; response mengikuti serialisasi model saat ini.
+- User belum memiliki endpoint untuk menghapus laporan; penghapusan tersedia hanya bagi admin.
+- URL gambar publik memakai domain R2 yang dikonfigurasi; jangan menyimpan S3 API endpoint sebagai URL untuk client.
 - Belum ada refresh-token flow; login kembali diperlukan jika token tidak lagi valid.
 - Contract test dan OpenAPI/Swagger schema belum tersedia.
+
+### Cloudflare R2 configuration and existing images
+
+Atur `AWS_ACCESS_KEY_ID` dan `AWS_SECRET_ACCESS_KEY` dengan R2 S3 credentials, serta `AWS_BUCKET=swms`, `AWS_DEFAULT_REGION=auto`, `AWS_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com`, dan `R2_PUBLIC_URL` ke domain publik bucket. Jangan gunakan Cloudflare dashboard API token sebagai S3 secret.
+
+Migration database mengganti kolom `image_path` menjadi `image_url` tanpa menghapus nilai lama. Setelah R2 dikonfigurasi, jalankan `php artisan reports:migrate-images-to-r2 --dry-run`, tinjau daftar file, lalu jalankan `php artisan reports:migrate-images-to-r2` untuk memindahkan foto legacy dari disk `public` ke R2. Perintah ini aman dijalankan ulang dan mempertahankan record yang file lokalnya tidak ditemukan.
 
 ## Local Test Accounts
 

@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'location_address',
     'latitude',
     'longitude',
-    'image_path',
+    'image_url',
     'status',
     'admin_notes',
 ])]

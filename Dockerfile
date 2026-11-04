@@ -16,17 +16,6 @@ RUN composer install \
 COPY . .
 RUN composer dump-autoload --no-dev --classmap-authoritative --no-scripts
 
-FROM node:22-alpine AS assets
-
-WORKDIR /app
-
-COPY package.json package-lock.json ./
-RUN npm ci
-
-COPY resources ./resources
-COPY vite.config.js ./
-RUN npm run build
-
 FROM php:8.5-apache-bookworm AS runtime
 
 ENV APACHE_DOCUMENT_ROOT=/var/www/html/public \
@@ -44,7 +33,6 @@ RUN apt-get update \
 WORKDIR /var/www/html
 
 COPY --from=vendor /app/vendor ./vendor
-COPY --from=assets /app/public/build ./public/build
 COPY . .
 
 RUN mkdir -p \

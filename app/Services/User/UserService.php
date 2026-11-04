@@ -3,12 +3,18 @@
 namespace App\Services\User;
 
 use App\Models\User;
+use App\Services\Report\ReportImageStorage;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 class UserService
 {
+    public function __construct(
+        protected ReportImageStorage $imageStorage,
+    ) {}
+
     /**
      * Get paginated list of users with search and role filter.
      */
@@ -79,6 +85,15 @@ class UserService
             ]);
         }
 
-        return (bool) $user->delete();
+        $imageUrls = $user->reports()->whereNotNull('image_url')->pluck('image_url');
+        $deleted = DB::transaction(fn (): bool => (bool) $user->delete());
+
+        if ($deleted) {
+            foreach ($imageUrls as $imageUrl) {
+                $this->imageStorage->delete($imageUrl);
+            }
+        }
+
+        return $deleted;
     }
 }

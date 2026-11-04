@@ -1,11 +1,11 @@
 name: Build and Publish SWMS Image
 
 on:
-  # Disabled for now. Uncomment to build/publish automatically on pushes again.
-  # push:
-  #   branches:
-  #     - main
-  #     - master
+   Disabled for now. Uncomment to build/publish automatically on pushes again.
+   push:
+     branches:
+       - main
+       - master
   workflow_dispatch: {}
 
 permissions:
@@ -35,23 +35,11 @@ jobs:
           coverage: none
           tools: composer:v2
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-
       - name: Install PHP dependencies
         run: composer install --prefer-dist --no-interaction --no-progress
 
-      - name: Install frontend dependencies
-        run: npm ci
-
       - name: Run tests
         run: php artisan test --compact
-
-      - name: Build frontend assets
-        run: npm run build
 
   build-and-push:
     name: Build and publish GHCR image

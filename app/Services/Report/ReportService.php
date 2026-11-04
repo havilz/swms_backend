@@ -7,12 +7,15 @@ use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class ReportService
 {
+    public function __construct(
+        protected ReportImageStorage $imageStorage,
+    ) {}
+
     /**
      * Get paginated reports for a specific regular user (mobile).
      */
@@ -76,10 +79,10 @@ class ReportService
      */
     public function createReport(User $user, array $data, ?UploadedFile $image = null): Report
     {
-        $imagePath = null;
+        $imageUrl = null;
         try {
             if ($image && $image->isValid()) {
-                $imagePath = $image->store('reports', 'public');
+                $imageUrl = $this->imageStorage->store($image);
             }
 
             return DB::transaction(fn (): Report => Report::create([
@@ -89,17 +92,57 @@ class ReportService
                 'location_address' => $data['location_address'],
                 'latitude' => $data['latitude'] ?? null,
                 'longitude' => $data['longitude'] ?? null,
-                'image_path' => $imagePath,
+                'image_url' => $imageUrl,
                 'status' => Report::STATUS_PENDING,
                 'admin_notes' => null,
             ]));
         } catch (Throwable $exception) {
-            if ($imagePath) {
-                Storage::disk('public')->delete($imagePath);
+            if ($imageUrl) {
+                $this->imageStorage->delete($imageUrl);
             }
 
             throw $exception;
         }
+    }
+
+    /**
+     * Update user-editable report fields and optionally replace or remove its image.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public function updateReport(Report $report, array $data, ?UploadedFile $image = null): Report
+    {
+        $removeImage = (bool) ($data['remove_image'] ?? false);
+        unset($data['image'], $data['remove_image']);
+
+        $newImageUrl = $image?->isValid() ? $this->imageStorage->store($image) : null;
+        $oldImageUrl = $report->image_url;
+
+        try {
+            $updatedReport = DB::transaction(function () use ($report, $data, $newImageUrl, $removeImage): Report {
+                if ($newImageUrl !== null) {
+                    $data['image_url'] = $newImageUrl;
+                } elseif ($removeImage) {
+                    $data['image_url'] = null;
+                }
+
+                $report->update($data);
+
+                return $report->refresh();
+            });
+        } catch (Throwable $exception) {
+            if ($newImageUrl !== null) {
+                $this->imageStorage->delete($newImageUrl);
+            }
+
+            throw $exception;
+        }
+
+        if ($oldImageUrl !== null && ($newImageUrl !== null || $removeImage)) {
+            $this->imageStorage->delete($oldImageUrl);
+        }
+
+        return $updatedReport;
     }
 
     /**
@@ -126,11 +169,9 @@ class ReportService
      */
     public function deleteReport(Report $report): void
     {
-        if ($report->image_path && Storage::disk('public')->exists($report->image_path)) {
-            Storage::disk('public')->delete($report->image_path);
-        }
-
-        $report->delete();
+        $imageUrl = $report->image_url;
+        DB::transaction(fn () => $report->delete());
+        $this->imageStorage->delete($imageUrl);
     }
 
     private function perPage(int $perPage): int
