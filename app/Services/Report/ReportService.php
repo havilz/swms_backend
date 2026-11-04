@@ -146,6 +146,14 @@ class ReportService
     }
 
     /**
+     * @return array{stream: resource, mime_type: string|null, size: int|null}|null
+     */
+    public function openReportImage(Report $report): ?array
+    {
+        return $this->imageStorage->open($report->image_url);
+    }
+
+    /**
      * Update report status and administrator notes.
      */
     public function updateReportStatus(Report $report, string $status, ?string $adminNotes = null): Report

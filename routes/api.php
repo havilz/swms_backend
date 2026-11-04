@@ -24,6 +24,7 @@ Route::prefix('v1')->group(function () {
     Route::middleware(['auth:sanctum', 'user'])->group(function () {
         Route::get('reports', [ReportController::class, 'index']);
         Route::post('reports', [ReportController::class, 'store']);
+        Route::get('reports/{report}/image', [ReportController::class, 'image']);
         Route::get('reports/{report}', [ReportController::class, 'show']);
         Route::patch('reports/{report}', [ReportController::class, 'update']);
         Route::delete('reports/{report}', [ReportController::class, 'destroy']);

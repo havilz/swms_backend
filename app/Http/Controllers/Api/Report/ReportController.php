@@ -11,6 +11,7 @@ use App\Models\Report;
 use App\Services\Report\ReportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
 {
@@ -74,6 +75,49 @@ class ReportController extends Controller
         return response()->json([
             'data' => (new ReportResource($report))->resolve($request),
         ]);
+    }
+
+    /**
+     * Stream an owned report image through the authenticated API.
+     */
+    public function image(Request $request, Report $report): StreamedResponse|JsonResponse
+    {
+        if ($report->user_id !== $request->user()->id) {
+            return response()->json([
+                'message' => 'Anda tidak memiliki hak akses untuk melihat foto laporan ini.',
+            ], 403);
+        }
+
+        $image = $this->reportService->openReportImage($report);
+        if ($image === null) {
+            return response()->json(['message' => 'Foto laporan tidak ditemukan.'], 404);
+        }
+
+        $mimeType = strtolower((string) $image['mime_type']);
+        if (! in_array($mimeType, ['image/jpeg', 'image/png', 'image/webp'], true)) {
+            fclose($image['stream']);
+
+            return response()->json(['message' => 'Format foto laporan tidak didukung.'], 415);
+        }
+
+        $headers = [
+            'Content-Type' => $mimeType,
+            'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
+        ];
+        if ($image['size'] !== null) {
+            $headers['Content-Length'] = (string) $image['size'];
+        }
+
+        return response()->stream(function () use ($image): void {
+            try {
+                fpassthru($image['stream']);
+            } finally {
+                if (is_resource($image['stream'])) {
+                    fclose($image['stream']);
+                }
+            }
+        }, 200, $headers);
     }
 
     /**

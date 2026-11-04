@@ -298,6 +298,12 @@ User yang bukan pemilik laporan menerima `403 Forbidden`.
 }
 ```
 
+### GET `/reports/{report}/image`
+
+Mengirim byte foto laporan melalui API terautentikasi agar aplikasi mobile tidak perlu mengakses domain publik R2 secara langsung. Hanya pemilik laporan yang dapat mengakses endpoint ini; pengguna lain menerima `403 Forbidden`. Response sukses berisi byte gambar dengan `Content-Type` `image/jpeg`, `image/png`, atau `image/webp`, serta cache privat.
+
+Jika laporan tidak memiliki foto atau objek tidak ditemukan, API mengembalikan `404 Not Found`.
+
 ### PATCH `/reports/{report}`
 
 Memperbarui laporan milik user yang sedang login. `{report}` harus dimiliki user tersebut; pemilik lain menerima `403 Forbidden`. Request menerima JSON, atau `multipart/form-data` bila mengganti gambar. Untuk multipart, kirim sebagai `POST` dengan field `_method=PATCH` agar upload file diparse konsisten oleh PHP.

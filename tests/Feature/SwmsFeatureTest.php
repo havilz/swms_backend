@@ -79,6 +79,63 @@ class SwmsFeatureTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_user_can_load_owned_report_image_through_authenticated_api(): void
+    {
+        $this->fakeR2();
+        $user = User::factory()->create();
+        $imageBytes = base64_decode(self::IMAGE_CONTENT, true);
+        Storage::disk('r2')->put('reports/photo.png', $imageBytes);
+        $report = Report::factory()->create([
+            'user_id' => $user->id,
+            'image_url' => 'https://pub-c956ace443384e5d97c55b5406d3c802.r2.dev/reports/photo.png',
+        ]);
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->get("/api/v1/reports/{$report->id}/image");
+
+        $response->assertOk()
+            ->assertHeader('Content-Type', 'image/png')
+            ->assertHeader('Cache-Control', 'no-store, private');
+        $this->assertSame($imageBytes, $response->streamedContent());
+    }
+
+    public function test_user_cannot_load_another_users_report_image(): void
+    {
+        $this->fakeR2();
+        $owner = User::factory()->create();
+        $otherUser = User::factory()->create();
+        Storage::disk('r2')->put('reports/private.png', base64_decode(self::IMAGE_CONTENT, true));
+        $report = Report::factory()->create([
+            'user_id' => $owner->id,
+            'image_url' => 'https://pub-c956ace443384e5d97c55b5406d3c802.r2.dev/reports/private.png',
+        ]);
+
+        $this->actingAs($otherUser, 'sanctum')
+            ->getJson("/api/v1/reports/{$report->id}/image")
+            ->assertForbidden();
+    }
+
+    public function test_guest_cannot_load_report_image(): void
+    {
+        $report = Report::factory()->create();
+
+        $this->getJson("/api/v1/reports/{$report->id}/image")
+            ->assertUnauthorized();
+    }
+
+    public function test_report_image_endpoint_returns_not_found_without_an_image(): void
+    {
+        $user = User::factory()->create();
+        $report = Report::factory()->create([
+            'user_id' => $user->id,
+            'image_url' => null,
+        ]);
+
+        $this->actingAs($user, 'sanctum')
+            ->getJson("/api/v1/reports/{$report->id}/image")
+            ->assertNotFound();
+    }
+
     public function test_user_can_create_report_with_image_saved_to_r2_as_a_url(): void
     {
         $this->fakeR2();

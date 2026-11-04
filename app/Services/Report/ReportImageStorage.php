@@ -27,6 +27,52 @@ class ReportImageStorage
         return $this->publicBaseUrl().'/'.ltrim($path, '/');
     }
 
+    /**
+     * @return array{stream: resource, mime_type: string|null, size: int|null}|null
+     */
+    public function open(?string $imageUrl): ?array
+    {
+        if ($imageUrl === null || $imageUrl === '') {
+            return null;
+        }
+
+        $baseUrl = $this->publicBaseUrl();
+        $disk = 'r2';
+        if (str_starts_with($imageUrl, $baseUrl.'/')) {
+            $path = substr($imageUrl, strlen($baseUrl) + 1);
+        } elseif (! str_contains($imageUrl, '://') && str_starts_with($imageUrl, 'reports/')) {
+            $disk = 'public';
+            $path = $imageUrl;
+        } else {
+            throw new RuntimeException('URL foto laporan tidak dikenali.');
+        }
+
+        $path = rawurldecode($path);
+        if (
+            ! str_starts_with($path, 'reports/')
+            || str_contains($path, '\\')
+            || in_array('..', explode('/', $path), true)
+        ) {
+            throw new RuntimeException('Path foto laporan tidak valid.');
+        }
+
+        $storage = Storage::disk($disk);
+        if (! $storage->exists($path)) {
+            return null;
+        }
+
+        $stream = $storage->readStream($path);
+        if (! is_resource($stream)) {
+            throw new RuntimeException('Foto laporan gagal dibaca dari storage.');
+        }
+
+        return [
+            'stream' => $stream,
+            'mime_type' => $storage->mimeType($path),
+            'size' => $storage->size($path),
+        ];
+    }
+
     private function publicBaseUrl(): string
     {
         $baseUrl = rtrim((string) config('filesystems.disks.r2.url'), '/');
