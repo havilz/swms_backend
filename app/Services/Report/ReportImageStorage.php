@@ -2,9 +2,11 @@
 
 namespace App\Services\Report;
 
+use Aws\S3\Exception\S3Exception;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use League\Flysystem\UnableToReadFile;
 use RuntimeException;
 use Throwable;
 
@@ -57,20 +59,39 @@ class ReportImageStorage
         }
 
         $storage = Storage::disk($disk);
-        if (! $storage->exists($path)) {
+        if ($disk === 'public' && ! $storage->exists($path)) {
             return null;
         }
 
-        $stream = $storage->readStream($path);
+        try {
+            $stream = $storage->readStream($path);
+        } catch (UnableToReadFile $exception) {
+            if ($exception->getPrevious() instanceof S3Exception
+                && $exception->getPrevious()->getStatusCode() === 404) {
+                return null;
+            }
+
+            throw $exception;
+        }
         if (! is_resource($stream)) {
             throw new RuntimeException('Foto laporan gagal dibaca dari storage.');
         }
 
         return [
             'stream' => $stream,
-            'mime_type' => $storage->mimeType($path),
-            'size' => $storage->size($path),
+            'mime_type' => $this->mimeTypeForPath($path),
+            'size' => $disk === 'public' ? $storage->size($path) : null,
         ];
+    }
+
+    private function mimeTypeForPath(string $path): ?string
+    {
+        return match (strtolower(pathinfo($path, PATHINFO_EXTENSION))) {
+            'jpg', 'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'webp' => 'image/webp',
+            default => null,
+        };
     }
 
     private function publicBaseUrl(): string
