@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api\Report;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ApiReportIndexRequest;
 use App\Http\Requests\Report\StoreReportRequest;
+use App\Http\Requests\Report\UpdateReportRequest;
+use App\Http\Resources\ReportResource;
 use App\Models\Report;
 use App\Services\Report\ReportService;
 use Illuminate\Http\JsonResponse;
@@ -29,7 +31,9 @@ class ReportController extends Controller
         );
 
         return response()->json([
-            'data' => $reports->items(),
+            'data' => collect($reports->items())
+                ->map(fn (Report $report): array => (new ReportResource($report))->resolve($request))
+                ->all(),
             'meta' => [
                 'current_page' => $reports->currentPage(),
                 'last_page' => $reports->lastPage(),
@@ -52,7 +56,7 @@ class ReportController extends Controller
 
         return response()->json([
             'message' => 'Laporan berhasil dibuat.',
-            'data' => $report,
+            'data' => (new ReportResource($report))->resolve($request),
         ], 201);
     }
 
@@ -68,7 +72,24 @@ class ReportController extends Controller
         }
 
         return response()->json([
-            'data' => $report,
+            'data' => (new ReportResource($report))->resolve($request),
+        ]);
+    }
+
+    /**
+     * Update user-editable fields on a report owned by the authenticated user.
+     */
+    public function update(UpdateReportRequest $request, Report $report): JsonResponse
+    {
+        $report = $this->reportService->updateReport(
+            report: $report,
+            data: $request->validated(),
+            image: $request->file('image')
+        );
+
+        return response()->json([
+            'message' => 'Laporan berhasil diperbarui.',
+            'data' => (new ReportResource($report))->resolve($request),
         ]);
     }
 }

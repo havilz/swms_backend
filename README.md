@@ -1,9 +1,9 @@
 # Smart Waste Management System (SWMS)
 
-SWMS adalah backend Laravel untuk pengelolaan laporan sampah. Project ini menyediakan dua interface:
+SWMS adalah backend Laravel untuk pengelolaan laporan sampah. Project ini menyediakan:
 
-- RESTful API Sanctum untuk aplikasi mobile pengguna.
-- Dashboard admin berbasis Blade dan Tailwind CSS untuk mengelola user dan laporan.
+- REST API Sanctum untuk aplikasi mobile dan frontend admin terpisah.
+- Login admin dan satu dashboard health check minimal.
 
 ## Technology Stack
 
@@ -11,14 +11,13 @@ SWMS adalah backend Laravel untuk pengelolaan laporan sampah. Project ini menyed
 - Laravel 13
 - Laravel Sanctum 4
 - SQLite untuk development lokal
-- Blade, Tailwind CSS 4, dan Vite
+- Cloudflare R2 melalui S3-compatible Flysystem adapter
 - PHPUnit 12 dan Laravel Pint
 
 ## Requirements
 
 - PHP `8.5+`
 - Composer
-- Node.js dan npm
 - SQLite extension untuk PHP
 
 ## Local Setup
@@ -29,7 +28,6 @@ Clone project, install dependency, dan siapkan environment:
 composer install
 copy .env.example .env
 php artisan key:generate
-npm install
 ```
 
 Pastikan `.env` memiliki konfigurasi database dan credential seeder:
@@ -40,6 +38,13 @@ DB_DATABASE=database/database.sqlite
 
 SWMS_ADMIN_PASSWORD="ganti-dengan-password-admin-minimal-12-karakter"
 SWMS_DEMO_PASSWORD="ganti-dengan-password-demo-minimal-12-karakter"
+
+AWS_ACCESS_KEY_ID="R2 S3 access key ID"
+AWS_SECRET_ACCESS_KEY="R2 S3 secret access key"
+AWS_BUCKET=swms
+AWS_DEFAULT_REGION=auto
+AWS_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
+R2_PUBLIC_URL=https://cloudflare_public_url.dev
 ```
 
 Karakter `#` di dalam password harus berada di dalam tanda kutip.
@@ -81,14 +86,7 @@ Akun admin seeder:
 
 Password tidak disimpan di source code atau dokumentasi.
 
-Dashboard menyediakan:
-
-- Ringkasan jumlah laporan berdasarkan status.
-- Daftar laporan terbaru.
-- Filter dan detail laporan.
-- Update status dengan workflow `pending` → `in_progress` → `completed` atau `rejected`.
-- Catatan admin untuk pengguna mobile.
-- Manajemen user dan role.
+Dashboard hanya memeriksa status aplikasi/API dan koneksi database. Pengelolaan laporan dan user tersedia melalui Admin API.
 
 ## Mobile API
 
@@ -109,6 +107,13 @@ Endpoint tersedia:
 | `GET` | `/reports` | User token |
 | `POST` | `/reports` | User token |
 | `GET` | `/reports/{report}` | User token, owner only |
+| `PATCH` | `/reports/{report}` | User token, owner only; status remains admin-managed |
+| `GET` | `/admin/dashboard` | Admin token |
+| `GET` | `/admin/reports` | Admin token |
+| `GET/PATCH/DELETE` | `/admin/reports/{report}` | Admin token |
+| `PATCH` | `/admin/reports/{report}/status` | Admin token |
+| `GET/POST` | `/admin/users` | Admin token |
+| `GET/PATCH/DELETE` | `/admin/users/{user}` | Admin token |
 
 Header authenticated request:
 
@@ -148,12 +153,14 @@ app/
 - Admin web menggunakan session authentication dan middleware role admin.
 - Mobile API menggunakan Sanctum bearer token.
 - User mobile hanya dapat melihat report miliknya sendiri.
+- User hanya dapat mengubah field laporan miliknya sendiri; status dan catatan admin hanya dapat diubah admin.
+- Admin API routes menggunakan Sanctum dan role middleware `admin`.
 - Admin tidak dapat menggunakan mobile report endpoint.
 - Login dan register memiliki rate limit berbasis email + IP.
 - Upload report dibatasi ke JPG, JPEG, PNG, WEBP dengan maksimum 5 MB.
 - Status report tidak dapat dikontrol dari payload mobile.
 - Password dan remember token disembunyikan dari serialization user.
-- Form web memakai CSRF protection.
+- Admin web UI hanya memiliki login dan health dashboard.
 - Jangan commit `.env`, token, password, atau credential production.
 
 ## Testing and Quality
@@ -170,11 +177,10 @@ Format PHP:
 vendor/bin/pint --format agent
 ```
 
-Validasi Blade dan frontend build:
+Validasi Blade:
 
 ```bash
 php artisan view:cache
-npm run build
 ```
 
 Security dependency audit:
@@ -183,7 +189,7 @@ Security dependency audit:
 composer audit --locked
 ```
 
-Test suite mencakup guest redirect, admin/user authorization, mobile API isolation, registration, report creation, image validation, status workflow, dan user management.
+Test suite mencakup guest redirect, admin/user authorization, mobile API isolation, registration, R2 image storage contract, report editing, image validation, status workflow, dan user management.
 
 ## GHCR and CI/CD
 
@@ -192,11 +198,10 @@ Workflow [`.github/workflows/docker-publish.yml`](.github/workflows/docker-publi
 Alurnya:
 
 1. GitHub Actions checkout source.
-2. Setup PHP 8.5 dan Node.js 22.
-3. Install dependency Composer dan npm.
-4. Jalankan PHPUnit dan build Vite.
-5. Jika test lulus, build satu production image dari [Dockerfile](Dockerfile).
-6. Login menggunakan `GITHUB_TOKEN` dan publish ke GHCR.
+2. Setup PHP 8.5.
+3. Install dependency Composer dan jalankan PHPUnit.
+4. Jika test lulus, build satu production image dari [Dockerfile](Dockerfile).
+5. Login menggunakan `GITHUB_TOKEN` dan publish ke GHCR.
 
 Image yang dihasilkan:
 
@@ -222,10 +227,18 @@ Tidak perlu membuat `GHCR_TOKEN` manual untuk publish dari repository yang sama;
 
 Image tidak membawa `.env`, database SQLite lokal, token, atau password. Saat container dijalankan, inject environment production seperti `APP_KEY`, `APP_ENV`, `APP_DEBUG=false`, database connection, `FILESYSTEM_DISK`, dan secret lain melalui platform deployment. Di Render, `APP_URL` otomatis memakai `RENDER_EXTERNAL_URL` jika `APP_URL` tidak diset; set `APP_URL` hanya bila ingin memaksa custom domain.
 
-Migration dijalankan sebagai langkah release/deployment terpisah:
+Untuk deployment non-Docker, jalankan migration sebagai langkah release:
 
 ```bash
 php artisan migrate --force
 ```
+
+Docker image saat ini juga menjalankan migration sebelum Apache saat container start. Untuk memindahkan foto legacy dari local `public` disk ke R2, tinjau terlebih dahulu:
+
+```bash
+php artisan reports:migrate-images-to-r2 --dry-run
+```
+
+Setelah memastikan target database dan daftar file benar, jalankan perintah tanpa `--dry-run`.
 
 Jangan menjalankan `db:seed` production tanpa keputusan eksplisit karena seeder memperbarui akun demo berdasarkan `SWMS_ADMIN_PASSWORD` dan `SWMS_DEMO_PASSWORD`.

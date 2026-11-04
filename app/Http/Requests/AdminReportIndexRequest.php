@@ -28,6 +28,7 @@ class AdminReportIndexRequest extends FormRequest
             'search' => ['nullable', 'string', 'max:255'],
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
+            'per_page' => ['nullable', 'integer', 'between:1,50'],
         ];
     }
 }

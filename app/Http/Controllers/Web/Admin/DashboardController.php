@@ -3,23 +3,29 @@
 namespace App\Http\Controllers\Web\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Services\Report\ReportService;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    public function __construct(
-        protected ReportService $reportService,
-    ) {}
-
-    /**
-     * Display dashboard summary.
-     */
     public function index(): View
     {
-        $stats = $this->reportService->getDashboardStats();
-        $recentReports = $this->reportService->getRecentReports();
+        $databaseStatus = 'healthy';
 
-        return view('admin.dashboard', compact('stats', 'recentReports'));
+        try {
+            DB::select('SELECT 1');
+        } catch (QueryException $exception) {
+            Log::error('Admin health dashboard database check failed.', [
+                'exception' => $exception->getMessage(),
+            ]);
+            $databaseStatus = 'unhealthy';
+        }
+
+        return view('admin.dashboard', [
+            'databaseStatus' => $databaseStatus,
+            'apiHealthUrl' => url('/up'),
+        ]);
     }
 }
