@@ -35,6 +35,7 @@ Route::prefix('v1')->group(function () {
 
         Route::get('reports', [AdminReportController::class, 'index']);
         Route::get('reports/{report}', [AdminReportController::class, 'show']);
+        Route::post('reports/{report}/classify', [AdminReportController::class, 'classify'])->middleware('throttle:10,1');
         Route::patch('reports/{report}/status', [AdminReportController::class, 'updateStatus']);
         Route::delete('reports/{report}', [AdminReportController::class, 'destroy']);
 

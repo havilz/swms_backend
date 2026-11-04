@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'waste_model' => [
+        'url' => env('SWMS_MODEL_API_URL'),
+        'token' => env('SWMS_MODEL_API_TOKEN'),
+    ],
+
 ];

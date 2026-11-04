@@ -7,7 +7,9 @@ use App\Http\Requests\AdminReportIndexRequest;
 use App\Http\Requests\Report\UpdateReportStatusRequest;
 use App\Http\Resources\ReportResource;
 use App\Models\Report;
+use App\Services\Report\ModelClassificationException;
 use App\Services\Report\ReportService;
+use App\Services\Report\WasteModelClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -47,6 +49,17 @@ class ReportController extends Controller
         return response()->json([
             'data' => (new ReportResource($report))->resolve($request),
         ]);
+    }
+
+    public function classify(Report $report, WasteModelClient $wasteModelClient): JsonResponse
+    {
+        try {
+            return response()->json($wasteModelClient->classify($report));
+        } catch (ModelClassificationException $exception) {
+            return response()->json([
+                'message' => $exception->getMessage(),
+            ], $exception->status);
+        }
     }
 
     public function updateStatus(UpdateReportStatusRequest $request, Report $report): JsonResponse

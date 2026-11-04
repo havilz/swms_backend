@@ -335,6 +335,7 @@ Semua endpoint `/admin/*` memerlukan Sanctum token milik user dengan role `admin
 | `GET` | `/admin/dashboard` | Statistik laporan dan laporan terbaru |
 | `GET` | `/admin/reports` | Daftar laporan dengan filter status, pencarian, tanggal, dan paginasi |
 | `GET` | `/admin/reports/{report}` | Detail laporan dan data pelapor |
+| `POST` | `/admin/reports/{report}/classify` | Minta saran klasifikasi foto laporan dari model AI |
 | `PATCH` | `/admin/reports/{report}/status` | Perbarui status dan catatan admin sesuai workflow |
 | `DELETE` | `/admin/reports/{report}` | Hapus laporan serta gambar terkait |
 | `GET` | `/admin/users` | Daftar user/admin dengan filter role, pencarian, dan paginasi |
@@ -344,6 +345,32 @@ Semua endpoint `/admin/*` memerlukan Sanctum token milik user dengan role `admin
 | `DELETE` | `/admin/users/{user}` | Hapus user; admin tidak dapat menghapus akunnya sendiri |
 
 Web UI backend hanya menyediakan login admin dan dashboard health check pada `/admin/dashboard`. Endpoint `GET /up` adalah health endpoint API publik Laravel.
+
+### POST `/admin/reports/{report}/classify`
+
+Endpoint ini hanya menerima Sanctum bearer token administrator. Backend membaca
+foto dari storage laporan, mengirimnya sebagai multipart ke service model, lalu
+meneruskan hasil tervalidasi. Batas request adalah 10 MiB dengan timeout
+koneksi 3 detik dan timeout keseluruhan 20 detik. Maksimum 10 request per menit
+per admin.
+
+Environment backend:
+
+```env
+SWMS_MODEL_API_URL=https://<model-service>/predict
+SWMS_MODEL_API_TOKEN=<shared-secret>
+```
+
+URL wajib HTTPS. Token yang sama harus disetel sebagai
+`SWMS_MODEL_API_TOKEN` di service model dan jangan pernah ditaruh di dashboard,
+response, atau log.
+
+Response `200 OK` berisi `predicted_class`, `confidence`, `probabilities`, dan
+`model_version`. Nilainya hanya saran untuk admin dan tidak disimpan,
+ditambahkan ke status laporan, atau digunakan untuk memperbarui kategori
+laporan. Tanpa foto endpoint mengembalikan `404`; konfigurasi service tidak
+tersedia mengembalikan `503`; gambar terlalu besar mengembalikan `413`;
+gangguan atau response upstream tidak valid mengembalikan `502`.
 
 ## Report Status
 
@@ -402,25 +429,6 @@ Request tidak memenuhi validation rules.
 ### Rate limit `429`
 
 Login atau register terlalu sering dilakukan. Mobile client perlu menghormati response rate limit dan mencoba kembali setelah jeda.
-
-## Security Requirements for Mobile Client
-
-- Jangan menyimpan token di plain text storage atau log.
-- Jangan mencetak password, token, atau response auth ke console production.
-- Selalu kirim `Accept: application/json`.
-- Gunakan HTTPS di staging/production.
-- Jangan mengirim field `status`, `user_id`, atau `admin_notes` saat membuat report.
-- Tampilkan `admin_notes` sebagai plain text; jangan merendernya sebagai HTML.
-- Tangani `401` dengan menghapus token lokal dan mengarahkan user ke login.
-- Tangani `403` sebagai akses ditolak, bukan sebagai sesi kadaluarsa.
-- Tangani `422` per field agar pesan validasi dapat ditampilkan dekat input terkait.
-
-## Current Limitations and Future API Work
-
-- User belum memiliki endpoint untuk menghapus laporan; penghapusan tersedia hanya bagi admin.
-- URL gambar publik memakai domain R2 yang dikonfigurasi; jangan menyimpan S3 API endpoint sebagai URL untuk client.
-- Belum ada refresh-token flow; login kembali diperlukan jika token tidak lagi valid.
-- Contract test dan OpenAPI/Swagger schema belum tersedia.
 
 ### Cloudflare R2 configuration and existing images
 
