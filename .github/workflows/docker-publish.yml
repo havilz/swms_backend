@@ -1,10 +1,11 @@
 name: Build and Publish SWMS Image
 
 on:
-  push:
-    branches:
-      - main
-      - master
+  # Disabled for now. Uncomment to build/publish automatically on pushes again.
+  # push:
+  #   branches:
+  #     - main
+  #     - master
   workflow_dispatch: {}
 
 permissions:

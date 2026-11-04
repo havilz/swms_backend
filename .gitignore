@@ -26,6 +26,7 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 /.agents
+/graphify-out/cache/
 /AGENTS.md
 /CLAUDE.md
 /.venv
