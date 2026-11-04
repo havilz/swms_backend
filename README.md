@@ -230,13 +230,6 @@ php artisan migrate --force
 
 Jangan menjalankan `db:seed` production tanpa keputusan eksplisit karena seeder memperbarui akun demo berdasarkan `SWMS_ADMIN_PASSWORD` dan `SWMS_DEMO_PASSWORD`.
 
-## Documentation
-
-- [API Documentation](docs/API_DOCUMENTATION.md)
-- [Project Status](project_status.md)
-- [Task Plan](task.md)
-- [Agent Instructions](AGENTS.md)
-
 ## Development Notes
 
 - Jangan menambahkan dependency untuk kebutuhan kecil yang dapat diselesaikan dengan Laravel atau PHP bawaan.
