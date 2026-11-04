@@ -62,12 +62,12 @@ return [
 
         'r2' => [
             'driver' => 's3',
-            'key' => env('AWS_ACCESS_KEY_ID'),
-            'secret' => env('AWS_SECRET_ACCESS_KEY'),
+            'key' => env('R2_ACCESS_KEY_ID', env('AWS_ACCESS_KEY_ID')),
+            'secret' => env('R2_SECRET_ACCESS_KEY', env('AWS_SECRET_ACCESS_KEY')),
             'region' => env('AWS_DEFAULT_REGION', 'auto'),
-            'bucket' => env('AWS_BUCKET'),
+            'bucket' => env('R2_BUCKET_NAME', env('AWS_BUCKET')),
             'url' => env('R2_PUBLIC_URL'),
-            'endpoint' => env('AWS_ENDPOINT'),
+            'endpoint' => env('R2_ENDPOINT', env('AWS_ENDPOINT')),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
             'throw' => true,
             'report' => true,

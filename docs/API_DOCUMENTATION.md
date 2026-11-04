@@ -24,7 +24,7 @@ Untuk staging atau production, ganti host sesuai environment aplikasi.
 
 ## Storage configuration
 
-Report images use the `r2` disk backed by Cloudflare's S3-compatible API. Set `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` to the R2 S3 access-key pair, `AWS_BUCKET=swms`, `AWS_DEFAULT_REGION=auto`, `AWS_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com`, and `R2_PUBLIC_URL` to the bucket's public domain. Do not use the Cloudflare dashboard API token as the S3 secret or expose the S3 API endpoint as an image URL.
+Report images use the `r2` disk backed by Cloudflare's S3-compatible API. Set `R2_ACCESS_KEY_ID` and `R2_SECRET_ACCESS_KEY` to the R2 S3 access-key pair, `R2_BUCKET_NAME=swms`, `AWS_DEFAULT_REGION=auto`, `R2_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com`, and `R2_PUBLIC_URL` to the bucket's public domain. Do not use the Cloudflare dashboard API token as the S3 secret or expose the S3 API endpoint as an image URL. The backend also accepts the legacy `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_BUCKET`, and `AWS_ENDPOINT` names as fallbacks.
 
 The database stores the complete public URL in `reports.image_url`. For backward compatibility, report JSON includes `image_path` with the same URL. Legacy local images can be moved with `php artisan reports:migrate-images-to-r2 --dry-run`; review the output before running the command without `--dry-run`.
 
@@ -418,7 +418,7 @@ Login atau register terlalu sering dilakukan. Mobile client perlu menghormati re
 
 ### Cloudflare R2 configuration and existing images
 
-Atur `AWS_ACCESS_KEY_ID` dan `AWS_SECRET_ACCESS_KEY` dengan R2 S3 credentials, serta `AWS_BUCKET=swms`, `AWS_DEFAULT_REGION=auto`, `AWS_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com`, dan `R2_PUBLIC_URL` ke domain publik bucket. Jangan gunakan Cloudflare dashboard API token sebagai S3 secret.
+Atur `R2_ACCESS_KEY_ID` dan `R2_SECRET_ACCESS_KEY` dengan R2 S3 credentials, serta `R2_BUCKET_NAME=swms`, `AWS_DEFAULT_REGION=auto`, `R2_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com`, dan `R2_PUBLIC_URL` ke domain publik bucket. Backend juga menerima nama variabel lama `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_BUCKET`, dan `AWS_ENDPOINT` sebagai fallback. Jangan gunakan Cloudflare dashboard API token sebagai S3 secret.
 
 Migration database mengganti kolom `image_path` menjadi `image_url` tanpa menghapus nilai lama. Setelah R2 dikonfigurasi, jalankan `php artisan reports:migrate-images-to-r2 --dry-run`, tinjau daftar file, lalu jalankan `php artisan reports:migrate-images-to-r2` untuk memindahkan foto legacy dari disk `public` ke R2. Perintah ini aman dijalankan ulang dan mempertahankan record yang file lokalnya tidak ditemukan.
 

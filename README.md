@@ -39,11 +39,11 @@ DB_DATABASE=database/database.sqlite
 SWMS_ADMIN_PASSWORD="ganti-dengan-password-admin-minimal-12-karakter"
 SWMS_DEMO_PASSWORD="ganti-dengan-password-demo-minimal-12-karakter"
 
-AWS_ACCESS_KEY_ID="R2 S3 access key ID"
-AWS_SECRET_ACCESS_KEY="R2 S3 secret access key"
-AWS_BUCKET=swms
+R2_ACCESS_KEY_ID="R2 S3 access key ID"
+R2_SECRET_ACCESS_KEY="R2 S3 secret access key"
+R2_BUCKET_NAME=swms
 AWS_DEFAULT_REGION=auto
-AWS_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
+R2_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
 R2_PUBLIC_URL=https://cloudflare_public_url.dev
 ```
 
