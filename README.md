@@ -10,7 +10,7 @@ SWMS adalah backend Laravel untuk pengelolaan laporan sampah. Project ini menyed
 - PHP 8.3+ (tested on PHP 8.5.12)
 - Laravel 13
 - Laravel Sanctum 4
-- SQLite untuk development lokal
+- PostgreSQL (supabase)
 - Cloudflare R2 melalui S3-compatible Flysystem adapter
 - PHPUnit 12 dan Laravel Pint
 
