@@ -229,10 +229,3 @@ php artisan migrate --force
 ```
 
 Jangan menjalankan `db:seed` production tanpa keputusan eksplisit karena seeder memperbarui akun demo berdasarkan `SWMS_ADMIN_PASSWORD` dan `SWMS_DEMO_PASSWORD`.
-
-## Development Notes
-
-- Jangan menambahkan dependency untuk kebutuhan kecil yang dapat diselesaikan dengan Laravel atau PHP bawaan.
-- Perubahan UI Blade/Tailwind wajib mengikuti skill `design-taste-frontend` lokal dan diverifikasi dengan build.
-- Perubahan endpoint wajib mempertahankan validation, authorization, dan feature test.
-- Untuk production, gunakan database terkelola, HTTPS, secure storage, dan secret manager.
