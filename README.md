@@ -124,6 +124,68 @@ Authorization: Bearer <token>
 
 Dokumentasi endpoint lengkap, request body, response, validation, pagination, upload foto, error format, dan security requirement tersedia di [docs/API_DOCUMENTATION.md](docs/API_DOCUMENTATION.md).
 
+## Database Schema
+
+ERD berikut merangkum tabel inti aplikasi. `personal_access_tokens` memakai
+relasi polymorphic Laravel Sanctum (`tokenable_type` + `tokenable_id`), sehingga
+token dapat dimiliki oleh model yang mendukung token, termasuk `users`.
+
+```mermaid
+erDiagram
+    USERS ||--o{ REPORTS : submits
+    USERS ||--o{ PERSONAL_ACCESS_TOKENS : owns
+
+    USERS {
+        bigint id PK
+        string name
+        string email UK
+        string phone "nullable"
+        enum role "admin | user"
+        string avatar "nullable"
+        timestamp email_verified_at "nullable"
+        string password
+        string remember_token "nullable"
+        timestamps created_at
+    }
+
+    REPORTS {
+        bigint id PK
+        bigint user_id FK
+        string title
+        text description
+        string location_address
+        decimal latitude "nullable, 10 7"
+        decimal longitude "nullable, 10 7"
+        string image_url "nullable, R2 image URL/path"
+        enum status "pending | in_progress | completed | rejected"
+        text admin_notes "nullable"
+        timestamps created_at
+    }
+
+    PERSONAL_ACCESS_TOKENS {
+        bigint id PK
+        string tokenable_type
+        bigint tokenable_id
+        text name
+        string token UK
+        text abilities "nullable"
+        timestamp last_used_at "nullable"
+        timestamp expires_at "nullable"
+        timestamps created_at
+    }
+```
+
+- Satu user dapat membuat banyak laporan; setiap laporan dimiliki tepat satu
+  user. Foreign key `reports.user_id` menghapus laporan milik user saat user
+  dihapus (`cascadeOnDelete`).
+- `image_url` menyimpan referensi gambar di storage (umumnya Cloudflare R2),
+  bukan isi file gambar.
+- Tabel operasional Laravel yang juga dibuat migration: `password_reset_tokens`,
+  `sessions`, `cache`, `cache_locks`, `jobs`, `job_batches`, dan `failed_jobs`.
+  Tabel-tabel ini mendukung autentikasi/state aplikasi, cache, dan antrean; tidak
+  memiliki relasi domain langsung dengan laporan.
+- Skema aktual didefinisikan oleh migration di [`database/migrations/`](database/migrations/).
+
 ## Architecture
 
 Project mengikuti pemisahan Controller–Service berbasis domain:
