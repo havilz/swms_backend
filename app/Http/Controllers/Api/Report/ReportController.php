@@ -92,4 +92,22 @@ class ReportController extends Controller
             'data' => (new ReportResource($report))->resolve($request),
         ]);
     }
+
+    /**
+     * Delete a report owned by the authenticated mobile user.
+     */
+    public function destroy(Request $request, Report $report): JsonResponse
+    {
+        if ($report->user_id !== $request->user()->id) {
+            return response()->json([
+                'message' => 'Anda tidak memiliki hak akses untuk menghapus laporan ini.',
+            ], 403);
+        }
+
+        $this->reportService->deleteReport($report);
+
+        return response()->json([
+            'message' => 'Laporan berhasil dihapus.',
+        ]);
+    }
 }

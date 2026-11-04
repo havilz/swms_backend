@@ -26,6 +26,7 @@ Route::prefix('v1')->group(function () {
         Route::post('reports', [ReportController::class, 'store']);
         Route::get('reports/{report}', [ReportController::class, 'show']);
         Route::patch('reports/{report}', [ReportController::class, 'update']);
+        Route::delete('reports/{report}', [ReportController::class, 'destroy']);
     });
 
     Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {

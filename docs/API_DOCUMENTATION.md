@@ -300,13 +300,25 @@ User yang bukan pemilik laporan menerima `403 Forbidden`.
 
 ### PATCH `/reports/{report}`
 
-Memperbarui laporan milik user yang sedang login. `{report}` harus dimiliki user tersebut; pemilik lain menerima `403 Forbidden`. Request menerima JSON atau `multipart/form-data` bila mengganti gambar.
+Memperbarui laporan milik user yang sedang login. `{report}` harus dimiliki user tersebut; pemilik lain menerima `403 Forbidden`. Request menerima JSON, atau `multipart/form-data` bila mengganti gambar. Untuk multipart, kirim sebagai `POST` dengan field `_method=PATCH` agar upload file diparse konsisten oleh PHP.
 
 Field yang dapat diubah: `title`, `description`, `location_address`, `latitude`, `longitude`, `image`, dan `remove_image`. Field bersifat opsional, tetapi minimal satu perubahan harus dikirim. Gambar baru disimpan ke R2 dan URL pada database diperbarui; gambar sebelumnya dihapus setelah perubahan tersimpan.
 
 User tidak dapat mengubah `status`, `admin_notes`, atau `user_id`; perubahan status hanya dapat dilakukan melalui Admin API.
 
 Kirim `remove_image: true` untuk menghapus gambar yang sudah ada. `image` dan `remove_image` tidak boleh dikirim bersamaan. Response `200 OK` berisi `message` dan objek `data` laporan yang diperbarui.
+
+### DELETE `/reports/{report}`
+
+Menghapus laporan milik user yang sedang login beserta gambarnya di R2. User yang bukan pemilik menerima `403 Forbidden`.
+
+#### Response `200 OK`
+
+```json
+{
+  "message": "Laporan berhasil dihapus."
+}
+```
 
 ## Admin API
 

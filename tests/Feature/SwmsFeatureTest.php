@@ -162,6 +162,39 @@ class SwmsFeatureTest extends TestCase
         ]);
     }
 
+    public function test_user_can_delete_owned_report_and_its_image(): void
+    {
+        $this->fakeR2();
+        $user = User::factory()->create();
+        $imageKey = 'reports/user-report.png';
+        Storage::disk('r2')->put($imageKey, 'image');
+        $report = Report::factory()->create([
+            'user_id' => $user->id,
+            'image_url' => 'https://pub-c956ace443384e5d97c55b5406d3c802.r2.dev/'.$imageKey,
+        ]);
+
+        $this->actingAs($user, 'sanctum')
+            ->deleteJson("/api/v1/reports/{$report->id}")
+            ->assertOk()
+            ->assertJsonPath('message', 'Laporan berhasil dihapus.');
+
+        $this->assertDatabaseMissing('reports', ['id' => $report->id]);
+        Storage::disk('r2')->assertMissing($imageKey);
+    }
+
+    public function test_user_cannot_delete_another_users_report(): void
+    {
+        $owner = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $report = Report::factory()->create(['user_id' => $owner->id]);
+
+        $this->actingAs($otherUser, 'sanctum')
+            ->deleteJson("/api/v1/reports/{$report->id}")
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('reports', ['id' => $report->id]);
+    }
+
     public function test_user_can_replace_and_remove_report_image_on_r2(): void
     {
         $this->fakeR2();
