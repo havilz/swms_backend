@@ -82,7 +82,7 @@ http://localhost:8000/admin/login
 Akun admin seeder:
 
 - Email: `admin@swms.test`
-- Password: nilai dari `SWMS_ADMIN_PASSWORD` di `.env`
+- Password: `SwmsAdmin!2026#8xLkQ2vN`
 
 Password tidak disimpan di source code atau dokumentasi.
 
